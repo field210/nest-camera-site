@@ -3,6 +3,7 @@ const {FileQueue} = require('./utils');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
+const { DateTime } = require('luxon');
 
 IMAGE_DIR = path.join(__dirname, '..', 'nest');
 
@@ -11,7 +12,7 @@ if (!fs.existsSync(IMAGE_DIR)) {
 }
 
 function capture() {
-    fs.readFile('./config.json', (err, data) => { 
+    fs.readFile('./config.json', (err, data) => {
         const config = JSON.parse(data);
         authGoogle(config['issueToken'], config['cookies'], config['apiKey']).then(token => {
             const fq = new FileQueue(config['rotation_hours']*3600/config['interval_seconds'], IMAGE_DIR);
@@ -21,7 +22,7 @@ function capture() {
 }
 
 function getImage(token, fq, config){
-    const now = new Date();
+    const now = DateTime.local();;
     if (now < token.expiry) {
         setTimeout(() => getImage(token, fq, config), config['interval_seconds']*1000);
     }
@@ -44,7 +45,8 @@ function getImage(token, fq, config){
         },
     }).then(response => {
         if (response.ok) {
-            const filename = path.join(IMAGE_DIR,now.toJSON()+'.jpg');
+            const ts=now.toFormat('yyyy-MM-dd_HH-mm-ss')
+            const filename = path.join(IMAGE_DIR,ts+'.jpg');
             const file = fs.createWriteStream(filename);
             response.body.pipe(file);
             fq.push(filename);
