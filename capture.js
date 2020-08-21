@@ -58,6 +58,7 @@ function getImage(config, fq){
         else {
             console.log(now, response.status);
             if (response.status != 404) {
+                console.log(response)
                 connect(config, fq);
             }
             else {
