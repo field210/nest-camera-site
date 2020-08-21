@@ -5,6 +5,7 @@ const path = require('path');
 const NestConnection = require('homebridge-nest/lib/nest-connection.js');
 
 
+const { DateTime } = require('luxon');
 
 IMAGE_DIR = path.join(__dirname, '..', 'nest');
 
@@ -13,7 +14,7 @@ if (!fs.existsSync(IMAGE_DIR)) {
 }
 
 function capture() {
-    fs.readFile('./config.json', (err, data) => { 
+    fs.readFile('./config.json', (err, data) => {
         const config = JSON.parse(data);
         const fq = new FileQueue(config['rotation_hours']*3600/config['interval_seconds'], IMAGE_DIR);
         connect(config, fq);
@@ -34,7 +35,7 @@ function connect(config, fq) {
 }
 
 function getImage(config, fq){
-    const now = new Date();
+    const now = DateTime.local();
     fetch(`https://nexusapi-${config['server']}.camera.home.nest.com/get_image?uuid=${config['uuid']}&width=${config['resolution']}`, {
         method: 'GET',
         headers: {
@@ -48,7 +49,8 @@ function getImage(config, fq){
     }).then(response => {
         if (response.ok) {
             setTimeout(() => getImage(config, fq), config['interval_seconds']*1000);
-            const filename = path.join(IMAGE_DIR,now.toJSON()+'.jpg');
+            const ts=now.toFormat('yyyy-MM-dd_HH-mm-ss')
+            const filename = path.join(IMAGE_DIR,ts+'.jpg');
             const file = fs.createWriteStream(filename);
             response.body.pipe(file);
             fq.push(filename);
